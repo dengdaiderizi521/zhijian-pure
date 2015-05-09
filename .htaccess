@@ -1,0 +1,7 @@
+# 请确保 mod_rewrite.so 开启
+
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+#RewriteBase /
+RewriteRule ^(.*)$ index.php?uri=$1&%{QUERY_STRING} [L]
