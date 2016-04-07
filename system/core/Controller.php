@@ -108,4 +108,12 @@ class ZJ_Controller
     {
         return _get_config($configFileName, $key);
     }
+
+    /**
+     * 显示404页面
+     */
+    protected function show_404()
+    {
+        _page_error_404();
+    }
 }

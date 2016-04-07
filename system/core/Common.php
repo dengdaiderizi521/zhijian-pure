@@ -33,6 +33,7 @@ function _get_config($filename = 'config', $key = false)
 
 function _error_log($errno, $errstr, $filepath, $line)
 {
+    header('system error', 1, 500);
     $levels = array(
         E_ERROR => 'Error',
         E_WARNING => 'Warning',
@@ -47,24 +48,64 @@ function _error_log($errno, $errstr, $filepath, $line)
         E_USER_NOTICE => 'User Notice',
         E_STRICT => 'Runtime Notice'
     );
-    if ($errno == E_STRICT) {
-        die;
+    $logPath = _get_config('config', 'log_path');
+    if (!empty($logPath)) {
+        if (!is_dir($logPath)) {
+            @mkdir($logPath, 0777);
+        }
+        $logPath .= '/error-' . date('Y-m-d') . '.log';
+        //此处定义日志格式
+        $errormessage = date('Y-m-d H:i:s') . ' ' . $levels[$errno] . ':' . strip_tags($errstr) . ' in ' . $filepath . ' on line ' . $line . ' uri:' . $_SERVER['REQUEST_URI'] . "\n";
+        file_put_contents($logPath, $errormessage, FILE_APPEND);
     }
-    $log_path = _get_config('config', 'log_path');
-    if (empty($log_path)) {
-        die;
+
+    if (file_exists(APPPATH . 'error/error.php')) {
+        $debug = _get_config('config', 'debug');
+        require_once APPPATH . 'error/error.php';
     }
-    if (!is_dir($log_path)) {
-        @mkdir($log_path, 0777);
+}
+
+/*
+|---------------------------------------------------------------
+| 异常处理函数
+|---------------------------------------------------------------
+*/
+
+function _exception($ex)
+{
+    restore_exception_handler();
+    $errcode = $ex->getMessage();
+    $errmsg = str_ireplace("\n", '<br>', $ex->__toString());
+    $logPath = _get_config('config', 'log_path');
+    if (!empty($logPath)) {
+        if (!is_dir($logPath)) {
+            @mkdir($logPath, 0777);
+        }
+        $logPath .= '/exception-' . date('Y-m-d') . '.log';
+        file_put_contents($logPath, $errmsg, FILE_APPEND);
     }
-    $log_path .= '/error-' . date('Y-m-d') . '.log';
-    $errormessage = '';
-    if (file_exists($log_path)) {
-        $errormessage = file_get_contents($log_path);
+
+    if (file_exists(APPPATH . 'error/exception.php')) {
+        $debug = _get_config('config', 'debug');
+        require_once APPPATH . 'error/exception.php';
+    } elseif (strtolower($_SERVER['REQUEST_METHOD']) === 'post' && isset($_SERVER["HTTP_X_REQUESTED_WITH"]) && strtolower($_SERVER["HTTP_X_REQUESTED_WITH"]) == "xmlhttprequest") {
+        echo json_encode(['code' => 0, 'msg' => $errcode]);
     }
-    $errormessage .= date('Y-m-d H:i:s') . ' ' . $levels[$errno] . ':' . strip_tags($errstr) . ' in ' . $filepath . ' on line ' . $line . ' uri:' . $_SERVER['REQUEST_URI'] . "\n";
-    file_put_contents($log_path, $errormessage);
-    die;
+}
+
+/*
+|---------------------------------------------------------------
+| 每个脚本执行结束时调用
+| 此方法无论在任何情况下都会得到执行,即便使用了die或exit亦或程序异常/错误
+|---------------------------------------------------------------
+*/
+
+function _shutdown()
+{
+    if (file_exists(APPPATH . 'hook/ZJHook.php')) {
+        require_once APPPATH . 'hook/ZJHook.php';
+        new ZJHook();
+    }
 }
 
 /*
@@ -90,6 +131,9 @@ function _no_rewrite_run($controller, $function)
         $function = strtolower($_GET[$function]);
     }
     if (!file_exists(APPPATH . 'controller/' . $class . '.php')) {
+        _page_error_404();
+    }
+    if (strtolower($_SERVER['REQUEST_METHOD']) === 'post' && $function[0] !== '_') {
         _page_error_404();
     }
     require_once SYSTEMPATH . 'core/Controller.php';
@@ -129,6 +173,10 @@ function _rewrite_run()
     if (!file_exists(APPPATH . 'controller/' . $class . '.php')) {
         _page_error_404();
     }
+
+    if (strtolower($_SERVER['REQUEST_METHOD']) === 'post' && $function[0] !== '_') {
+        _page_error_404();
+    }
     require_once SYSTEMPATH . 'core/Controller.php';
     require_once CONTROLLERPATH . $class . '.php';
     if (!class_exists($class)) {
@@ -156,9 +204,9 @@ function _fetch_uri_string()
         return false;
     }
     $uriStr = htmlspecialchars($_GET['uri']);
-    $url_suffix = _get_config('config', 'url_suffix');
-    if (!empty($url_suffix)) {
-        $uriStr = preg_replace('/^(.*)' . preg_quote($url_suffix) . '$/', '$1', $uriStr);
+    $urlSuffix = _get_config('config', 'url_suffix');
+    if (!empty($urlSuffix)) {
+        $uriStr = preg_replace('/^(.*)' . preg_quote($urlSuffix) . '$/', '$1', $uriStr);
     }
     $tmpArr = explode('/', $uriStr);
     $uriArr['controller'] = $tmpArr[0];

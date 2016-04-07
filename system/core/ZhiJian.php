@@ -31,13 +31,14 @@ if (empty($config['view_file_suffix'])) {
 | debug处理
 |---------------------------------------------------------------
 */
+set_exception_handler('_exception');
+register_shutdown_function('_shutdown');
+
+set_error_handler('_error_log');
 if (!$config['debug']) {
-    if ($config['error_log'] && !empty($config['log_path'])) {
-        set_error_handler('_error_log');
-    } else {
-        error_reporting(null);
-    }
+    error_reporting(0);
 }
+
 /*
 |---------------------------------------------------------------
 | 执行请求
