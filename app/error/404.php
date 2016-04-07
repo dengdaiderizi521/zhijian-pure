@@ -10,8 +10,7 @@
     <p>你要找的页面回火星了(´･ω･`) 
       <a href='/' style='color:blue; text-decoration: none;'>点我返回首页</a>
       <br>
-      <a href='http://www.php32.com' target="_blank" style='color:blue; text-decoration: none;'>至简PHP开源框架官网</a>
-	  <a href='http://bbs.php32.com' target="_blank" style='color:blue; text-decoration: none;margin-left:50px;'>至简PHP开源框架社区</a>
+      <a href='http://php.zhijian.cc' target="_blank" style='color:blue; text-decoration: none;'>至简PHP开源框架官网</a>
 	  </p>
   </div>
 </body>
