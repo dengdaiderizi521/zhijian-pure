@@ -47,10 +47,16 @@ if (!$config['debug']) {
 if (!$config['rewrite']) {
     _no_rewrite_run($config['controller_trigger'], $config['function_trigger']);
 } else {
-    $result = apache_get_modules();
-    if (!in_array('mod_rewrite', $result)) {
-        _no_rewrite_run($config['controller_trigger'], $config['function_trigger']);
-    } else {
+    if (function_exists('apache_get_modules')) {
+        $result = apache_get_modules();
+        if (!in_array('mod_rewrite', $result)) {
+            _no_rewrite_run($config['controller_trigger'], $config['function_trigger']);
+        } else {
+            _rewrite_run();
+        }
+    } elseif (!empty($_GET['uri'])) {
         _rewrite_run();
+    } else {
+        _no_rewrite_run($config['controller_trigger'], $config['function_trigger']);
     }
 }

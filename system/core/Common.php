@@ -156,20 +156,10 @@ function _no_rewrite_run($controller, $function)
 function _rewrite_run()
 {
     $uriArr = _fetch_uri_string();
-    if (!isset($uriArr['controller'])) {
-        $default_controller = _get_config('config', 'default_controller');
-        if (!$default_controller) {
-            _page_error_404();
-        }
-        $class = ucfirst(strtolower($default_controller));
-    } else {
-        $class = ucfirst(strtolower($uriArr['controller']));
-    }
-    if (!isset($uriArr['function'])) {
-        $function = 'index';
-    } else {
-        $function = strtolower($uriArr['function']);
-    }
+
+    $class = ucfirst(strtolower($uriArr['controller']));
+    $function = strtolower($uriArr['function']);
+
     if (!file_exists(APPPATH . 'controller/' . $class . '.php')) {
         _page_error_404();
     }
@@ -201,6 +191,12 @@ function _rewrite_run()
 function _fetch_uri_string()
 {
     if (empty($_GET['uri'])) {
+        $default_controller = _get_config('config', 'default_controller');
+        if (!$default_controller) {
+            _page_error_404();
+        }
+        $uriArr['controller'] = ucfirst(strtolower($default_controller));
+        $uriArr['function'] = 'index';
         return false;
     }
     $uriStr = htmlspecialchars($_GET['uri']);
@@ -245,4 +241,30 @@ function _page_error_404()
         require_once APPPATH . 'error/404.php';
     }
     die;
+}
+
+/*
+|---------------------------------------------------------------
+| 获取路由信息
+|---------------------------------------------------------------
+*/
+
+function _get_route()
+{
+    $data['uri'] = !empty($_GET['uri']) ? $_GET['uri'] : '/';
+    $config = _get_config('config');
+    if (!$config['rewrite']) {
+        $data['class'] = !empty($_GET['c']) ? $_GET['c'] : $config['default_controller'];
+        $data['method'] = !empty($_GET['m']) ? $_GET['m'] : 'index';
+    } else {
+        if (empty($data['uri']) || $data['uri'] == '/') {
+            $data['class'] = !empty($_GET['c']) ? $_GET['c'] : $config['default_controller'];
+            $data['method'] = !empty($_GET['m']) ? $_GET['m'] : 'index';
+        } else {
+            $uri = explode('/', trim($data['uri'], '/'));
+            $data['class'] = $uri[0];
+            $data['method'] = !empty($uri[1]) ? $uri[1] : 'index';
+        }
+    }
+    return $data;
 }

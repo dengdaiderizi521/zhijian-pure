@@ -10,6 +10,17 @@ class ZJ_Controller
 {
 
     private $viewVariable = array(); //定义类属性，用来保存视图变量
+    protected $uri = '';
+    protected $class = '';
+    protected $method = '';
+
+    public function __construct()
+    {
+        $route = _get_route();
+        $this->uri = $route['uri'];
+        $this->class = $route['class'];
+        $this->method = $route['method'];
+    }
 
     /**
      * 获取请求参数
