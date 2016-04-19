@@ -84,13 +84,17 @@ function _exception($ex)
         $logPath .= '/exception-' . date('Y-m-d') . '.log';
         file_put_contents($logPath, $errmsg, FILE_APPEND);
     }
-
+    $debug = _get_config('config', 'debug');
     if (file_exists(APPPATH . 'error/exception.php')) {
-        $debug = _get_config('config', 'debug');
         require_once APPPATH . 'error/exception.php';
     } elseif (strtolower($_SERVER['REQUEST_METHOD']) === 'post' && isset($_SERVER["HTTP_X_REQUESTED_WITH"]) && strtolower($_SERVER["HTTP_X_REQUESTED_WITH"]) == "xmlhttprequest") {
         echo json_encode(['code' => 0, 'msg' => $errcode]);
+    } elseif (!empty($debug)) {
+        echo $errmsg;
+    } elseif (file_exists(APPPATH . 'error/error.php')) {
+        require_once APPPATH . 'error/error.php';
     }
+    die;
 }
 
 /*
@@ -102,6 +106,9 @@ function _exception($ex)
 
 function _shutdown()
 {
+    require_once SYSTEMPATH . 'database/DB_init.php';
+    $_link = ZJ_Init::getInstance();
+    mysqli_close($_link->_link);
     if (file_exists(APPPATH . 'hook/ZJHook.php')) {
         require_once APPPATH . 'hook/ZJHook.php';
         new ZJHook();
@@ -197,13 +204,14 @@ function _fetch_uri_string()
         }
         $uriArr['controller'] = ucfirst(strtolower($default_controller));
         $uriArr['function'] = 'index';
-        return false;
+        return $uriArr;
     }
     $uriStr = htmlspecialchars($_GET['uri']);
     $urlSuffix = _get_config('config', 'url_suffix');
     if (!empty($urlSuffix)) {
         $uriStr = preg_replace('/^(.*)' . preg_quote($urlSuffix) . '$/', '$1', $uriStr);
     }
+    $uriStr = trim($uriStr, '/');
     $tmpArr = explode('/', $uriStr);
     $uriArr['controller'] = $tmpArr[0];
     unset($tmpArr[0]);
@@ -251,7 +259,7 @@ function _page_error_404()
 
 function _get_route()
 {
-    $data['uri'] = !empty($_GET['uri']) ? $_GET['uri'] : '/';
+    $data['uri'] = trim(!empty($_GET['uri']) ? $_GET['uri'] : '/', '/');
     $config = _get_config('config');
     if (!$config['rewrite']) {
         $data['class'] = !empty($_GET['c']) ? $_GET['c'] : $config['default_controller'];
@@ -267,4 +275,47 @@ function _get_route()
         }
     }
     return $data;
+}
+
+
+/*
+|---------------------------------------------------------------
+| 加载助手
+|---------------------------------------------------------------
+*/
+
+function Helper($helper)
+{
+    $helper = ucfirst(strtolower($helper));
+    $file = APPPATH . 'helper/' . $helper . '.php';
+    if (file_exists($file)) {
+        require_once $file;
+        if (class_exists($helper)) {
+            return new $helper();
+        }
+    } else {
+        echo $file . '不存在';
+        die;
+    }
+}
+
+/*
+|---------------------------------------------------------------
+| 加载类库
+|---------------------------------------------------------------
+*/
+
+function Lib($lib)
+{
+    $lib = ucfirst(strtolower($lib));
+    $file = APPPATH . 'lib/' . $lib . '.php';
+    if (file_exists($file)) {
+        require_once $file;
+        if (class_exists($lib)) {
+            return new $lib();
+        }
+    } else {
+        echo $file . '不存在';
+        die;
+    }
 }

@@ -3,6 +3,7 @@
 /*
  *--------------------------------------------------------------------------
  * 至简基础模型
+ * 更新时间: 2016-04-06
  *--------------------------------------------------------------------------
  */
 
@@ -17,6 +18,7 @@ class ZJ_Model
     private $_order_by = '';
     private $_data = array();
     private $_last_sql = '';
+    private $_in = array();
     const SELECT_TYPE = 'SELECT ';
     const UPDATE_TYPE = 'UPDATE ';
     const INSERT_TYPE = 'INSERT INTO ';
@@ -24,7 +26,7 @@ class ZJ_Model
     const COUNT_TYPE = 'SELECT COUNT(*) as count ';
 
     //构造方法，初始化数据库连接，获取数据库连接资源
-    function __construct()
+    public function __construct()
     {
         require_once SYSTEMPATH . 'database/DB_init.php';
         $this->_link = ZJ_Init::getInstance();
@@ -32,18 +34,10 @@ class ZJ_Model
     }
 
     /**
-     * 析构方法，释放资源，关闭数据库连接
-     */
-    function __destruct()
-    {
-        @mysqli_close($this->_link);
-    }
-
-    /**
      * 设置表名
      * @param $key 可以是字符串或者数组，如果传递$value则表示where条件是$key=$value
      */
-    function table($table)
+    public function table($table)
     {
         $this->_table = $table;
         return $this;
@@ -53,7 +47,7 @@ class ZJ_Model
      * 设置WHERE条件
      * @param $key 可以是字符串或者数组，如果传递$value则表示where条件是$key=$value
      */
-    function where($key, $value = false)
+    public function where($key, $value = false)
     {
         if (!is_array($key)) {
             $key = array($key => $value);
@@ -65,10 +59,23 @@ class ZJ_Model
     }
 
     /**
+     * 设置IN条件
+     * @param $field string 字段名
+     * @param $data array 数据
+     */
+    public function in($field, $data)
+    {
+        if (is_string($field) && is_array($data)) {
+            $this->_in[$field] = $data;
+        }
+        return $this;
+    }
+
+    /**
      * 设置select字段
      * @param $field 可以是字符串或者数组
      */
-    function select($field)
+    public function select($field)
     {
         $this->_select = array();
         if (is_string($field)) {
@@ -87,7 +94,7 @@ class ZJ_Model
      * @param $data 需要设置的数组 key是field;value是值
      * @param $escape 是否转义数组，默认TRUE
      */
-    function set($data, $escape = true)
+    public function set($data, $escape = true)
     {
         if (empty($data)) {
             return $this;
@@ -109,7 +116,7 @@ class ZJ_Model
      * @param $start 开始位置
      * @param $limit 限制条目数
      */
-    function limit($start, $limit)
+    public function limit($start, $limit)
     {
         if (empty($start) && empty($limit)) {
             return $this;
@@ -128,7 +135,7 @@ class ZJ_Model
      * @param $field 可以是完整的order by字符串或者字段名
      * @param $sort 排序
      */
-    function order_by($field, $sort = null)
+    public function order_by($field, $sort = null)
     {
         if (is_null($sort)) {
             $this->_order_by = $field;
@@ -142,7 +149,7 @@ class ZJ_Model
     /**
      * 返回最后执行的一条sql语句
      */
-    function last_sql()
+    public function last_sql()
     {
         return $this->_last_sql;
     }
@@ -150,7 +157,7 @@ class ZJ_Model
     /**
      * 获取执行结果
      */
-    function get($table = false, $limit = null, $offset = null)
+    public function get($table = false, $limit = null, $offset = null)
     {
         if (!empty($table)) {
             $this->_table = $table;
@@ -168,7 +175,7 @@ class ZJ_Model
     /**
      * 获取执行结果
      */
-    function get_row($table = false)
+    public function get_row($table = false)
     {
         $result = $this->get($table, 1);
         $this->_initParam();
@@ -178,7 +185,7 @@ class ZJ_Model
     /**
      * 获取执行结果的条目数
      */
-    function count($table = false)
+    public function count($table = false)
     {
         if (!empty($table)) {
             $this->_table = $table;
@@ -195,7 +202,7 @@ class ZJ_Model
     /**
      * 插入一条数据
      */
-    function insert($table = false, $data = array())
+    public function insert($table = false, $data = array())
     {
         if (!empty($table)) {
             $this->_table = $table;
@@ -221,7 +228,7 @@ class ZJ_Model
     /**
      * 修改数据
      */
-    function update($table = false, $data = array(), $where = null)
+    public function update($table = false, $data = array(), $where = null)
     {
         if (!empty($table)) {
             $this->_table = $table;
@@ -247,7 +254,7 @@ class ZJ_Model
     /**
      * 删除数据
      */
-    function delete($table = false, $where = null)
+    public function delete($table = false, $where = null)
     {
         if (!empty($table)) {
             $this->_table = $table;
@@ -300,12 +307,27 @@ class ZJ_Model
             foreach ($this->_where as $k => $v) {
                 if (is_bool($v)) {
                     $where[] = $k;
+                } elseif (strpos($k, '>') !== false || strpos($k, '<') !== false || strpos($k, '=') !== false) {
+                    $where[] = "$k UNHEX('" . bin2hex($v) . "')";
                 } else {
                     $where[] = "`$k` = UNHEX('" . bin2hex($v) . "')";
                 }
             }
         }
         $this->_where = '';
+        if (! empty($this->_in)) {
+            foreach ($this->_in as $k => $v) {
+                $tmp = [];
+                foreach ($v as $val) {
+                    if (is_int($val) || is_string($val)) {
+                        $tmp[] = "UNHEX('" . bin2hex($val) . "')";
+                    }
+                }
+                if (! empty($tmp)) {
+                    $where[] = "`$k` IN (" . implode(',', $tmp) . ')';
+                }
+            }
+        }
         if (!empty($where)) {
             return ' WHERE ' . implode(' AND ', $where);
         }
@@ -334,7 +356,7 @@ class ZJ_Model
     private function _result($sql)
     {
         $result = $this->query($sql);
-        if (!empty($return)) {
+        if (!empty($return) || $result === false) {
             return false;
         }
         while ($row = mysqli_fetch_assoc($result)) {        //把查询结果重组成一个二维数组
@@ -454,6 +476,12 @@ class ZJ_Model
         }            //如果连接为空则返回FALSE
         $this->_last_sql = $sql;
         $result = mysqli_query($this->_link, $sql);
-        return $result;
+        $error = mysqli_error($this->_link);
+        if (empty($error)) {
+            return $result;
+        } else {
+            throw new Exception($error);
+        }
+
     }
 }
