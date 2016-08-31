@@ -9,7 +9,7 @@
     	本文件为示例文件，可自行删除、修改
     </div>
     <div>
-    	官方网站：<a href="http://www.php32.com" target="_blank">http://www.php32.com</a>
+    	官方网站：<a href="https://github.com/dengdaiderizi521/zhijian-pure" target="_blank">https://github.com/dengdaiderizi521/zhijian-pure</a>
     </div>
   </body>
 </html>

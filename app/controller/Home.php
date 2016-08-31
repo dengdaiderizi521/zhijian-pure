@@ -2,7 +2,7 @@
 /**
   * 至简PHP开源框架
   * 版本：至简纯净版
-  * 官方网站：http://www.php32.com
+  * 官方网站：https://github.com/dengdaiderizi521/zhijian-pure
   * 日期：2015-05-07
   * 示例文件，如果需要测试数据库，请先配置数据库信息[config/datebase.php]
   */

@@ -1,6 +1,6 @@
 # 至简PHP开源框架纯净版
 
-©www.zhijian.cc(官网正在构建当中)版权所有
+网址：https://github.com/dengdaiderizi521/zhijian-pure
 
 最后更新时间2016-04-08
 
